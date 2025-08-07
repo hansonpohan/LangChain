@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LangChain RAG Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            color: #4CAF50;
+            border-bottom-color: #4CAF50;
+        }
+
+        .tab:hover {
+            color: #4CAF50;
+            background-color: #f9f9f9;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 5px solid #4CAF50;
+            background: #f8f9fa;
+        }
+
+        .result.error {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+
+        .result h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .response-section {
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .context-section {
+            background: #fff3e0;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .context-section pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-card h4 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+
+        .stat-card p {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        details {
+            margin-top: 15px;
+        }
+
+        summary {
+            cursor: pointer;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            font-weight: 600;
+        }
+
+        summary:hover {
+            background: #e0e0e0;
+        }
+
+        details[open] summary {
+            border-radius: 5px 5px 0 0;
+        }
+
+        details pre {
+            background: #f8f8f8;
+            padding: 15px;
+            border-radius: 0 0 5px 5px;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+
+        .upload-form {
+            display: grid;
+            gap: 20px;
+        }
+
+        .upload-method {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .upload-method h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .chunking-strategy {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #ffc107;
+        }
+
+        .chunking-strategy h4 {
+            margin-bottom: 15px;
+            color: #856404;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            border: 2px dashed #4CAF50;
+            border-radius: 8px;
+            background: #f8fff8;
+        }
+
+        input[type="file"]:hover {
+            background: #f0f8f0;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                text-align: center;
+            }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 LangChain RAG Demo</h1>
+            <p>基於 LangChain 的檢索增強生成系統</p>
+        </div>
+
+        <div class="main-content">
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('query')">💬 智能問答</button>
+                <button class="tab" onclick="showTab('upload')">📄 文檔上傳</button>
+                <button class="tab" onclick="showTab('health')">🔍 系統狀態</button>
+            </div>
+
+            <!-- 查詢標籤頁 -->
+            <div id="query-tab" class="tab-content active">
+                <form id="queryForm">
+                    <div class="form-group">
+                        <label for="query">請輸入您的問題:</label>
+                        <input 
+                            type="text" 
+                            id="query" 
+                            name="query" 
+                            required 
+                            placeholder="例如：什麼是人工智慧？LangChain 的主要優勢是什麼？"
+                        >
+                    </div>
+                    <button type="submit" class="btn">🚀 提交查詢</button>
+                </form>
+
+                <div class="loading" id="query-loading">
+                    <div class="spinner"></div>
+                    <p>正在處理您的查詢，請稍候...</p>
+                </div>
+
+                <div id="query-result"></div>
+            </div>
+
+            <!-- 上傳標籤頁 -->
+            <div id="upload-tab" class="tab-content">
+                <!-- 文件上傳表單 -->
+                <div class="upload-method">
+                    <h3>📁 文件上傳 (支援 TXT 和 PDF)</h3>
+                    <form id="fileUploadForm" class="upload-form" enctype="multipart/form-data">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="file-input">選擇文件:</label>
+                                <input 
+                                    type="file" 
+                                    id="file-input" 
+                                    name="file" 
+                                    accept=".txt,.pdf"
+                                    required
+                                >
+                            </div>
+                            <div class="form-group">
+                                <label for="file-doc-id">文檔ID:</label>
+                                <input 
+                                    type="text" 
+                                    id="file-doc-id" 
+                                    name="doc_id" 
+                                    placeholder="留空則使用文件名"
+                                >
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="file-source">文檔來源:</label>
+                                <input 
+                                    type="text" 
+                                    id="file-source" 
+                                    name="source" 
+                                    placeholder="例如：技術文檔、使用手冊"
+                                    value="文件上傳"
+                                >
+                            </div>
+                        </div>
+                        
+                        <!-- 分割策略設置 -->
+                        <div class="chunking-strategy">
+                            <h4>📊 文檔分割策略</h4>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="file-chunk-size">塊大小 (Chunk Size):</label>
+                                    <input 
+                                        type="number" 
+                                        id="file-chunk-size" 
+                                        name="chunk_size" 
+                                        placeholder="留空則自動判斷 (建議: 500-2000)"
+                                        min="100"
+                                        max="4000"
+                                    >
+                                </div>
+                                <div class="form-group">
+                                    <label for="file-chunk-overlap">重疊大小 (Overlap):</label>
+                                    <input 
+                                        type="number" 
+                                        id="file-chunk-overlap" 
+                                        name="chunk_overlap" 
+                                        placeholder="留空則自動判斷 (建議: 50-400)"
+                                        min="0"
+                                        max="1000"
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn">📤 上傳文件</button>
+                    </form>
+                </div>
+                
+                <hr style="margin: 30px 0; border: 1px solid #eee;">
+                
+                <!-- 文字上傳表單 -->
+                <div class="upload-method">
+                    <h3>📝 文字上傳</h3>
+                    <form id="textUploadForm" class="upload-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="text-doc-id">文檔ID:</label>
+                                <input 
+                                    type="text" 
+                                    id="text-doc-id" 
+                                    name="doc-id" 
+                                    required 
+                                    placeholder="例如：doc_001"
+                                >
+                            </div>
+                            <div class="form-group">
+                                <label for="text-source">文檔來源:</label>
+                                <input 
+                                    type="text" 
+                                    id="text-source" 
+                                    name="doc-source" 
+                                    placeholder="例如：技術文檔、使用手冊"
+                                    value="文字上傳"
+                                >
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="text-content">文檔內容:</label>
+                            <textarea 
+                                id="text-content" 
+                                name="doc-text" 
+                                required 
+                                placeholder="請輸入文檔內容..."
+                                rows="8"
+                            ></textarea>
+                        </div>
+                        
+                        <!-- 分割策略設置 -->
+                        <div class="chunking-strategy">
+                            <h4>📊 文檔分割策略</h4>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="text-chunk-size">塊大小 (Chunk Size):</label>
+                                    <input 
+                                        type="number" 
+                                        id="text-chunk-size" 
+                                        name="chunk_size" 
+                                        placeholder="留空則自動判斷 (建議: 500-2000)"
+                                        min="100"
+                                        max="4000"
+                                    >
+                                </div>
+                                <div class="form-group">
+                                    <label for="text-chunk-overlap">重疊大小 (Overlap):</label>
+                                    <input 
+                                        type="number" 
+                                        id="text-chunk-overlap" 
+                                        name="chunk_overlap" 
+                                        placeholder="留空則自動判斷 (建議: 50-400)"
+                                        min="0"
+                                        max="1000"
+                                    >
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-secondary" onclick="getChunkingRecommendation()">
+                                🔍 獲取推薦策略
+                            </button>
+                        </div>
+                        
+                        <button type="submit" class="btn">📤 上傳文字</button>
+                    </form>
+                </div>
+
+                <div class="loading" id="upload-loading">
+                    <div class="spinner"></div>
+                    <p>正在上傳文檔，請稍候...</p>
+                </div>
+
+                <div id="upload-result"></div>
+            </div>
+
+            <!-- 健康檢查標籤頁 -->
+            <div id="health-tab" class="tab-content">
+                <button class="btn" onclick="checkHealth()">🔄 檢查系統狀態</button>
+                
+                <div class="loading" id="health-loading">
+                    <div class="spinner"></div>
+                    <p>正在檢查系統狀態...</p>
+                </div>
+
+                <div id="health-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API 基礎 URL
+        const API_BASE_URL = 'http://localhost:5001';
+
+        // 標籤頁切換
+        function showTab(tabName) {
+            // 隱藏所有標籤內容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 移除所有標籤的 active 類
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 顯示選中的標籤內容
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // 添加 active 類到選中的標籤
+            event.target.classList.add('active');
+        }
+
+        // 查詢表單處理
+        document.getElementById('queryForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const query = document.getElementById('query').value.trim();
+            const resultDiv = document.getElementById('query-result');
+            const loadingDiv = document.getElementById('query-loading');
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            
+            if (!query) {
+                showAlert('請輸入查詢內容', 'error', resultDiv);
+                return;
+            }
+            
+            // 顯示加載狀態
+            loadingDiv.style.display = 'block';
+            resultDiv.innerHTML = '';
+            submitBtn.disabled = true;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: query })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="result">
+                            <h3>📋 查詢結果</h3>
+                            <div class="response-section">
+                                <h4>🤖 AI 回應:</h4>
+                                <p>${formatResponse(data.response)}</p>
+                            </div>
+                            <div class="context-section">
+                                <h4>📚 檢索到的上下文:</h4>
+                                <pre>${data.context}</pre>
+                            </div>
+                            <div class="stats">
+                                <div class="stat-card">
+                                    <h4>檢索文檔數</h4>
+                                    <p>${data.source_documents_count || 0}</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4>查詢狀態</h4>
+                                    <p>✅ 成功</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    showError(data.error, data.traceback, resultDiv);
+                }
+            } catch (error) {
+                showError(`網路錯誤: ${error.message}`, null, resultDiv);
+            } finally {
+                loadingDiv.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+
+        // 文件上傳表單處理
+        document.getElementById('fileUploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const resultDiv = document.getElementById('upload-result');
+            const loadingDiv = document.getElementById('upload-loading');
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            
+            // 檢查文件
+            const fileInput = document.getElementById('file-input');
+            if (!fileInput.files[0]) {
+                showAlert('請選擇要上傳的文件', 'error', resultDiv);
+                return;
+            }
+            
+            // 顯示加載狀態
+            loadingDiv.style.display = 'block';
+            resultDiv.innerHTML = '';
+            submitBtn.disabled = true;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="result">
+                            <h3>✅ 文件上傳成功</h3>
+                            <p><strong>文件:</strong> ${data.doc_id}</p>
+                            <p><strong>消息:</strong> ${data.message}</p>
+                            <div class="stats">
+                                <div class="stat-card">
+                                    <h4>內容長度</h4>
+                                    <p>${data.content_length} 字符</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4>文檔塊數</h4>
+                                    <p>${data.chunk_count}</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4>塊大小</h4>
+                                    <p>${data.chunking_strategy.chunk_size}</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4>重疊大小</h4>
+                                    <p>${data.chunking_strategy.chunk_overlap}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    // 清空表單
+                    this.reset();
+                } else {
+                    showAlert(data.error, 'error', resultDiv);
+                }
+            } catch (error) {
+                showAlert(`網路錯誤: ${error.message}`, 'error', resultDiv);
+            } finally {
+                loadingDiv.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+
+        // 文字上傳表單處理
+        document.getElementById('textUploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const docId = document.getElementById('text-doc-id').value.trim();
+            const docSource = document.getElementById('text-source').value.trim() || '文字上傳';
+            const docText = document.getElementById('text-content').value.trim();
+            const chunkSize = document.getElementById('text-chunk-size').value;
+            const chunkOverlap = document.getElementById('text-chunk-overlap').value;
+            const resultDiv = document.getElementById('upload-result');
+            const loadingDiv = document.getElementById('upload-loading');
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            
+            if (!docId || !docText) {
+                showAlert('請填寫文檔ID和內容', 'error', resultDiv);
+                return;
+            }
+            
+            // 顯示加載狀態
+            loadingDiv.style.display = 'block';
+            resultDiv.innerHTML = '';
+            submitBtn.disabled = true;
+            
+            try {
+                const requestData = {
+                    id: docId,
+                    text: docText,
+                    source: docSource
+                };
+                
+                // 添加分割參數（如果有設置）
+                if (chunkSize) requestData.chunk_size = parseInt(chunkSize);
+                if (chunkOverlap) requestData.chunk_overlap = parseInt(chunkOverlap);
+                
+                const response = await fetch(`${API_BASE_URL}/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="result">
+                            <h3>✅ 文字上傳成功</h3>
+                            <p><strong>文檔ID:</strong> ${data.doc_id}</p>
+                            <p><strong>消息:</strong> ${data.message}</p>
+                            <div class="stats">
+                                <div class="stat-card">
+                                    <h4>內容長度</h4>
+                                    <p>${data.content_length} 字符</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4>文檔塊數</h4>
+                                    <p>${data.chunk_count}</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4>塊大小</h4>
+                                    <p>${data.chunking_strategy.chunk_size}</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4>重疊大小</h4>
+                                    <p>${data.chunking_strategy.chunk_overlap}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    // 清空表單
+                    this.reset();
+                } else {
+                    showAlert(data.error, 'error', resultDiv);
+                }
+            } catch (error) {
+                showAlert(`網路錯誤: ${error.message}`, 'error', resultDiv);
+            } finally {
+                loadingDiv.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+
+        // 獲取分割策略推薦
+        async function getChunkingRecommendation() {
+            const textContent = document.getElementById('text-content').value.trim();
+            
+            if (!textContent) {
+                alert('請先輸入文檔內容');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/chunking-strategy`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: textContent })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 填入推薦值
+                    document.getElementById('text-chunk-size').value = data.strategy.chunk_size;
+                    document.getElementById('text-chunk-overlap').value = data.strategy.chunk_overlap;
+                    
+                    // 顯示分析結果
+                    alert(`📊 文本分析結果：
+長度: ${data.text_analysis.length} 字符
+行數: ${data.text_analysis.lines} 行
+單詞數: ${data.text_analysis.words} 個
+
+🎯 推薦策略：
+塊大小: ${data.strategy.chunk_size}
+重疊大小: ${data.strategy.chunk_overlap}`);
+                } else {
+                    alert(`獲取推薦策略失敗: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`網路錯誤: ${error.message}`);
+            }
+        }
+
+        // 健康檢查
+        async function checkHealth() {
+            const resultDiv = document.getElementById('health-result');
+            const loadingDiv = document.getElementById('health-loading');
+            
+            loadingDiv.style.display = 'block';
+            resultDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+                
+                if (data.status === 'healthy') {
+                    resultDiv.innerHTML = `
+                        <div class="result">
+                            <h3>🟢 系統狀態正常</h3>
+                            <div class="stats">
+                                <div class="stat-card">
+                                    <h4>嵌入模型</h4>
+                                    <p>✅ ${data.components.embedding_model}</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4>向量存儲</h4>
+                                    <p>✅ ${data.components.vector_store}</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4>語言模型</h4>
+                                    <p>✅ ${data.components.llm}</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4>QA 鏈</h4>
+                                    <p>✅ ${data.components.qa_chain}</p>
+                                </div>
+                            </div>
+                            ${data.pinecone_stats ? `
+                                <div class="stats">
+                                    <div class="stat-card">
+                                        <h4>向量總數</h4>
+                                        <p>${data.pinecone_stats.total_vector_count}</p>
+                                    </div>
+                                    <div class="stat-card">
+                                        <h4>向量維度</h4>
+                                        <p>${data.pinecone_stats.dimension}</p>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                } else {
+                    showError(`系統狀態異常: ${data.error}`, null, resultDiv);
+                }
+            } catch (error) {
+                showError(`無法連接到服務器: ${error.message}`, null, resultDiv);
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        // 工具函數
+        function formatResponse(text) {
+            return text.replace(/\n/g, '<br>');
+        }
+
+        function showAlert(message, type, container) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type}`;
+            alertDiv.innerHTML = message;
+            container.appendChild(alertDiv);
+        }
+
+        function showError(error, traceback, container) {
+            let errorHtml = `
+                <div class="result error">
+                    <h3>❌ 錯誤</h3>
+                    <p>${error}</p>
+            `;
+            
+            if (traceback) {
+                errorHtml += `
+                    <details>
+                        <summary>查看詳細錯誤信息</summary>
+                        <pre>${traceback}</pre>
+                    </details>
+                `;
+            }
+            
+            errorHtml += '</div>';
+            container.innerHTML = errorHtml;
+        }
+
+        // 頁面加載時自動檢查健康狀態
+        document.addEventListener('DOMContentLoaded', function() {
+            // 可以在這裡添加初始化邏輯
+            console.log('LangChain RAG Demo 已加載');
+        });
+    </script>
+</body>
+</html>
