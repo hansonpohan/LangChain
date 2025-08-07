@@ -32,16 +32,34 @@
 - **JavaScript**: 交互邏輯
 - **Fetch API**: HTTP 請求
 
+## 系統要求
+
+- **Python 版本**: 3.11.9 或更高版本
+- **作業系統**: Windows 10/11, macOS, Linux
+- **記憶體**: 建議 4GB 以上
+- **磁盤空間**: 2GB 以上可用空間
+
 ## 安裝步驟
 
-### 1. 下載/克隆項目
+### 1. 確認 Python 版本
+
+確保您的系統安裝了 Python 3.11.9：
+
+```bash
+python --version
+# 應該顯示: Python 3.11.9 或更高版本
+```
+
+如果沒有安裝 Python 3.11.9，請從 [Python 官網](https://www.python.org/downloads/) 下載安裝。
+
+### 2. 下載/克隆項目
 
 ```bash
 git clone <repository-url>
 cd LangChain
 ```
 
-### 2. 創建虛擬環境 (建議)
+### 3. 創建虛擬環境 (建議)
 
 ```bash
 # Windows
@@ -53,13 +71,13 @@ python -m venv langchainenv
 source langchainenv/bin/activate
 ```
 
-### 3. 安裝 Python 依賴
+### 4. 安裝 Python 依賴
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. 配置環境變量
+### 5. 配置環境變量
 
 創建 `.env` 文件並填入您的 API 金鑰：
 
@@ -70,7 +88,7 @@ PINECONE_ENV=us-east-1
 PINECONE_INDEX_NAME=langchain-rag-demo
 ```
 
-### 5. 啟動應用
+### 6. 啟動應用
 
 #### 方式一：使用 PowerShell 腳本 (Windows)
 
@@ -90,7 +108,7 @@ python run.py
 python app.py
 ```
 
-### 6. 打開前端界面
+### 7. 打開前端界面
 
 啟動後訪問：
 

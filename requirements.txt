@@ -6,11 +6,11 @@ Werkzeug>=2.0.0
 # LangChain 相關 (使用相容版本)
 langchain==0.2.16
 langchain-google-genai==1.0.10
-langchain-pinecone==0.1.3
+langchain-pinecone>=0.1.3
 langchain-community==0.2.16
 
 # 向量數據庫
-pinecone-client==4.1.1
+pinecone-client>=5.0.0,<6.0.0
 
 # Google Generative AI
 google-generativeai<0.8.0
